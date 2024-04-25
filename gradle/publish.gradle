@@ -1,6 +1,25 @@
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
+Properties properties = new Properties()
+try {
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+} catch (ignored) {
+    // No local.properties file in CI
+}
+
+def mavenPublishUrl = System.getenv('MAVEN_PUBLISH')
+        ?: properties.getProperty("maven.url")
+        ?: run { throw new Exception("Could not find maven.url") }
+
+def mavenPublishUser = System.getenv('MAVEN_PUBLISH_USER')
+        ?: properties.getProperty("takrepo.user")
+        ?: run { throw new Exception("Could not find takrepo.user") }
+
+def mavenPublishPassword = System.getenv('MAVEN_PUBLISH_PASSWORD')
+        ?: properties.getProperty("takrepo.password")
+        ?: run { throw new Exception("Could not find takrepo.password") }
+
 publishing {
     publications.all {
         pom.withXml {
@@ -46,11 +65,10 @@ publishing {
 
     repositories {
         maven {
-            name 'sonatype'
-            url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            url mavenPublishUrl
             credentials {
-                username System.env.SONATYPE_USERNAME
-                password System.env.SONATYPE_PASSWORD
+                username = mavenPublishUser
+                password = mavenPublishPassword
             }
         }
     }
